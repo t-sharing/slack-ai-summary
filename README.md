@@ -131,7 +131,6 @@ Then update your Slack app configuration:
    - Set the Request URL to `https://your-ngrok-url.ngrok.io/slack/events`
 
 ### 8. Deploy to Firebase (Production)
-### 8. Deploy to Firebase (Production)
 
 1. Install Firebase CLI if you haven't already:
 ```bash
