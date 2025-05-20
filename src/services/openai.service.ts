@@ -44,7 +44,7 @@ export class OpenAIService {
 
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4',
+        model: 'gpt-4.1',
         response_format: { type: 'json_object' },
         messages: [
           {

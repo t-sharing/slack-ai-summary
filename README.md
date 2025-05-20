@@ -127,10 +127,67 @@ Then update your Slack app configuration:
 3. Under "Slash Commands":
    - Edit the `/summary-today` command
    - Set the Request URL to `https://your-ngrok-url.ngrok.io/slack/events`
-4. Under "Event Subscriptions":
    - Enable events
    - Set the Request URL to `https://your-ngrok-url.ngrok.io/slack/events`
 
+### 8. Deploy to Firebase (Production)
+### 8. Deploy to Firebase (Production)
+
+1. Install Firebase CLI if you haven't already:
+```bash
+npm install -g firebase-tools
+```
+
+2. Login to Firebase:
+```bash
+firebase login
+```
+
+3. Initialize Firebase in your project:
+```bash
+firebase init
+```
+   - Select "Functions" when prompted for features
+   - Choose an existing project or create a new one
+   - Select JavaScript or TypeScript based on your project
+   - Say "Yes" to ESLint
+   - Say "Yes" to installing dependencies
+
+4. Configure Firebase for your project:
+   - Create a `firebase.json` file in the root directory:
+```json
+{
+  "functions": {
+    "source": ".",
+    "runtime": "nodejs16"
+  }
+}
+```
+   - Update your `package.json` to include:
+```json
+"engines": {
+  "node": "16"
+},
+"main": "dist/index.js",
+```
+
+5. Deploy to Firebase:
+```bash
+firebase deploy --only functions
+```
+
+6. After deployment, Firebase will provide a domain URL (e.g., `https://your-project-id.web.app` or `https://your-project-id.firebaseapp.com`)
+
+7. Update your Slack app configuration with the Firebase domain:
+   - Go to [https://api.slack.com/apps](https://api.slack.com/apps) and select your app
+   - Under "Interactivity & Shortcuts":
+     - Set the Request URL to `https://your-firebase-function-url/slack/events`
+   - Under "Slash Commands":
+     - Edit the `/summary-today` command
+     - Set the Request URL to `https://your-firebase-function-url/slack/events`
+   - Under "Event Subscriptions":
+     - Enable events
+     - Set the Request URL to `https://your-firebase-function-url/slack/events`
 ## Usage
 
 ### Summarize a channel's messages from today
