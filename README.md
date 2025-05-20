@@ -71,7 +71,19 @@ npm install
      - Short Description: "Generate a summary of this thread"
      - Callback ID: `summarize_thread`
 
-### 4. Configure environment variables
+### 4. Set up OpenAI API access
+
+1. Create an account on [OpenAI's platform](https://platform.openai.com/) if you don't have one
+2. Navigate to the [API Keys section](https://platform.openai.com/api-keys) in your account
+3. Click "Create new secret key"
+4. Give your key a name (e.g., "Slack Summary Bot") and click "Create"
+5. Copy the API key immediately (it starts with "sk-") as you won't be able to see it again
+6. Make sure you have sufficient credits or a paid subscription to use the API
+7. Note that this application uses GPT-4 by default. If you want to use a different model:
+   - Open `src/services/openai.service.ts`
+   - Find the model parameter and change it to your preferred model (e.g., "gpt-3.5-turbo")
+
+### 5. Configure environment variables
 
 1. Copy the example environment file:
 ```bash
@@ -87,7 +99,7 @@ PORT=3000
 DEFAULT_SUMMARY_CHANNEL=general
 ```
 
-### 5. Build and run
+### 6. Build and run
 
 Development mode:
 ```bash
@@ -100,7 +112,7 @@ npm run build
 npm start
 ```
 
-### 6. Expose your local server (development)
+### 7. Expose your local server (development)
 
 For local development, use [ngrok](https://ngrok.com/) to create a public URL:
 
