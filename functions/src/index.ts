@@ -14,6 +14,7 @@ import { App, ExpressReceiver } from '@slack/bolt';
 import { SlackService } from './services/slack.service';
 import { OpenAIService } from './services/openai.service';
 import { registerCommands } from './routes/commands';
+import { registerActions } from './routes/actions';
 import express from 'express';
 import * as admin from 'firebase-admin';
 
@@ -141,6 +142,9 @@ const app = new App({
 
 // Register command handlers
 registerCommands(app, slackService, openaiService, config.DEFAULT_SUMMARY_CHANNEL);
+
+// Register action handlers (shortcuts, interactive components)
+registerActions(app, slackService, openaiService);
 
 // For Slack URL verification challenge on the Bolt endpoint
 receiver.router.use((req, res, next) => {

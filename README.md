@@ -8,7 +8,11 @@ A Slack bot that uses OpenAI's GPT-4 to summarize messages and extract action it
    - Use the `/summary-today #channel` slash command to summarize all messages in a channel from today
    - The bot fetches messages, generates a summary, and posts it to the channel
 
-2. **Extract action items**
+2. **Summarize thread conversations**
+   - Use the "Summarize this thread" message shortcut on any message
+   - The bot generates a concise summary of the entire thread and posts it as a reply
+
+3. **Extract action items**
    - Automatically identifies and extracts to-do items and action points from conversations
    - Presents them in a clear, readable format
 
@@ -65,6 +69,10 @@ npm install
 7. Under "Interactivity & Shortcuts":
    - Turn on Interactivity
    - Set Request URL to: `https://slackevents-5hwpwaphqa-uc.a.run.app/slack/events` (update with your actual URL)
+   - Add a message shortcut:
+     - Name: "Summarize this thread"
+     - Short Description: "Generate a summary of this thread"
+     - Callback ID: `summarize_thread`
 
 8. Under "Event Subscriptions":
    - Enable Events
@@ -143,6 +151,12 @@ After deployment, Firebase will provide a function URL (e.g., `https://slackeven
 ```
 
 If you don't specify a channel, it will summarize the current channel.
+
+### Summarize a thread
+
+1. Click the "..." (more actions) menu on any message
+2. Select "Summarize this thread"
+3. The summary will be posted as a reply in the thread
 
 ### Important Notes
 

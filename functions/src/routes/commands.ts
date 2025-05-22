@@ -14,7 +14,13 @@ export const registerCommands = (
    * Summarizes all messages created today in the specified channel
    */
   app.command('/summary-today', async ({ command, ack, respond, client }) => {
-    await ack();
+    // 명령어 인식 즉시 처리 중임을 알리는 응답 (Slack의 3초 타임아웃 방지)
+    await ack({
+      response_type: 'ephemeral',
+      text: 'Processing your request...'
+    });
+    
+    let responseId: string | undefined;
     
     try {
       logger.info('Received /summary-today command', { command });
@@ -41,7 +47,8 @@ export const registerCommands = (
             logger.warn('Channel not found', { channelName: targetChannel });
             await respond({
               text: `Channel #${targetChannel} not found. Please provide a valid channel name or ID.`,
-              response_type: 'ephemeral'
+              response_type: 'ephemeral',
+              replace_original: true
             });
             return;
           }
@@ -53,10 +60,17 @@ export const registerCommands = (
       
       // Send loading message
       logger.info('Sending loading message');
-      await respond({
+      const loadingResponse = await respond({
         text: `:hourglass: Fetching today's messages and generating summary...`,
-        response_type: 'ephemeral'
+        response_type: 'ephemeral',
+        replace_original: true
       });
+      
+      // Extract response ID if available
+      if (loadingResponse && typeof loadingResponse === 'object' && 'message_ts' in loadingResponse) {
+        responseId = (loadingResponse as any).message_ts;
+        logger.info('Got response ID for loading message', { responseId });
+      }
       
       // Get today's messages from the channel
       logger.info('Fetching messages from channel', { channelId: targetChannel });
@@ -66,7 +80,8 @@ export const registerCommands = (
         logger.info('No messages found in channel', { channelId: targetChannel });
         await respond({
           text: `No messages found in the channel for today.`,
-          response_type: 'ephemeral'
+          response_type: 'ephemeral',
+          replace_original: true
         });
         return;
       }
@@ -101,7 +116,8 @@ export const registerCommands = (
       logger.info('Notifying user of successful summary');
       await respond({
         text: `:white_check_mark: Summary generated and posted to #${channelName}.`,
-        response_type: 'ephemeral'
+        response_type: 'ephemeral',
+        replace_original: true
       });
     } catch (error) {
       logger.error('Error handling /summary-today command:', error);
@@ -124,10 +140,26 @@ export const registerCommands = (
         }
       }
       
-      await respond({
-        text: errorMessage,
-        response_type: 'ephemeral'
-      });
+      try {
+        // 기존 로딩 메시지가 있으면 이를 대체
+        await respond({
+          text: errorMessage,
+          response_type: 'ephemeral',
+          replace_original: true
+        });
+      } catch (respondError) {
+        logger.error('Failed to send error message:', respondError);
+        // 만약 respond 자체가 실패한 경우 fallback으로 채팅 메시지 전송
+        try {
+          await client.chat.postEphemeral({
+            channel: command.channel_id,
+            user: command.user_id,
+            text: `${errorMessage} (Failed to update original message)`
+          });
+        } catch (finalError) {
+          logger.error('All error notification attempts failed:', finalError);
+        }
+      }
     }
   });
 }; 

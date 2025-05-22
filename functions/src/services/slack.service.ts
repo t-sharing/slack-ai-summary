@@ -68,7 +68,7 @@ export class SlackService {
       
       return result.messages as SlackMessage[];
     } catch (error) {
-      console.error(`Error fetching messages for channel ${channelId}:`, error);
+      logger.error(`Error fetching messages for channel ${channelId}:`, error);
       throw error;
     }
   }
@@ -93,7 +93,7 @@ export class SlackService {
       
       return result.messages as SlackMessage[];
     } catch (error) {
-      console.error(`Error fetching thread replies for ${threadTs} in channel ${channelId}:`, error);
+      logger.error(`Error fetching thread replies for ${threadTs} in channel ${channelId}:`, error);
       throw error;
     }
   }
