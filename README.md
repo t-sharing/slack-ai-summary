@@ -16,6 +16,11 @@ A Slack bot that uses OpenAI's GPT-4 to summarize messages and extract action it
    - Automatically identifies and extracts to-do items and action points from conversations
    - Presents them in a clear, readable format
 
+4. **Optimized for Slack's response requirements**
+   - Implements fast acknowledgment pattern to prevent Slack timeout errors
+   - Uses asynchronous processing for long-running tasks
+   - Optimized memory and timeout settings for reliable performance
+
 ## Prerequisites
 
 - Node.js 22 or higher
@@ -171,6 +176,20 @@ If you don't specify a channel, it will summarize the current channel.
 - **Configuration Error**: Make sure all Firebase secrets are properly set
 - **Bot Not Responding**: Verify the URL settings in your Slack app configuration
 - **API Errors**: Check logs using `firebase functions:log`
+- **Slack Timeout Errors**: The app is optimized to respond quickly to Slack's requests, but if you still see timeout errors, check the Firebase function logs for details
+
+## Performance Optimizations
+
+This bot implements several optimizations to ensure reliable performance with Slack's API:
+
+1. **Fast Acknowledgment Pattern**: Immediately acknowledges Slack commands and shortcuts before processing
+2. **Asynchronous Processing**: Uses background processing for time-consuming tasks
+3. **Optimized Express Middleware**: Prioritizes URL verification requests
+4. **Enhanced Firebase Function Settings**: 
+   - Increased memory allocation (1GiB)
+   - Extended timeout (120 seconds)
+   - Maintains minimum instances for faster response
+5. **Response Time Monitoring**: Logs request processing times for performance analysis
 
 ## Configuration Options
 

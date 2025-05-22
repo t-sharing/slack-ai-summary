@@ -58,6 +58,32 @@ const openaiService = new OpenAIService(config.OPENAI_API_KEY);
 // Create Express app for the main function
 const mainApp = express();
 
+// 응답 시간 최적화를 위한 미들웨어
+mainApp.use((req, res, next) => {
+  // URL 검증 요청은 즉시 처리
+  if (req.body && req.body.type === 'url_verification') {
+    logger.info('Fast-tracking URL verification');
+    res.setHeader('Content-Type', 'text/plain');
+    res.send(req.body.challenge);
+    return;
+  }
+  
+  // 요청 처리 시간 측정 시작
+  const startTime = Date.now();
+  
+  // 응답 완료 후 로깅
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    logger.info(`Request processed in ${duration}ms`, {
+      method: req.method,
+      path: req.path,
+      status: res.statusCode
+    });
+  });
+  
+  next();
+});
+
 // Middleware for logging
 mainApp.use((req, res, next) => {
   logger.info('Received request', {
@@ -73,6 +99,7 @@ mainApp.use((req, res, next) => {
 mainApp.post('/', (req, res) => {
   if (req.body && req.body.type === 'url_verification') {
     logger.info('Received challenge verification at root endpoint', { challenge: req.body.challenge });
+    // 즉시 응답하여 타임아웃 방지
     res.setHeader('Content-Type', 'text/plain');
     res.send(req.body.challenge);
     return;
@@ -130,14 +157,18 @@ mainApp.get('/test-openai', async (req: Request, res: Response) => {
 // Create Express receiver for Slack events with a custom endpoint path
 const receiver = new ExpressReceiver({
   signingSecret: config.SLACK_SIGNING_SECRET,
-  processBeforeResponse: true,
+  processBeforeResponse: false,
   endpoints: '/slack/events'  // Set a specific endpoint path
 });
 
 // Create Slack app
 const app = new App({
   token: config.SLACK_BOT_TOKEN,
-  receiver
+  receiver,
+  // 처리 타임아웃 설정 (기본값보다 낮게 설정)
+  clientOptions: {
+    slackApiUrl: 'https://slack.com/api/'
+  }
 });
 
 // Register command handlers
@@ -150,6 +181,7 @@ registerActions(app, slackService, openaiService);
 receiver.router.use((req, res, next) => {
   if (req.body && req.body.type === 'url_verification') {
     logger.info('Received challenge verification at Bolt endpoint', { challenge: req.body.challenge });
+    // 즉시 응답하여 타임아웃 방지
     res.setHeader('Content-Type', 'text/plain');
     res.send(req.body.challenge);
     return;
@@ -169,5 +201,8 @@ export const slackEvents = onRequest({
     'SLACK_SIGNING_SECRET',
     'OPENAI_API_KEY',
     'DEFAULT_SUMMARY_CHANNEL'
-  ]
+  ],
+  memory: '1GiB',  // 메모리 증가
+  timeoutSeconds: 120,  // 타임아웃 증가 (최대 540초까지 가능)
+  minInstances: 1  // 항상 최소 1개의 인스턴스 유지
 }, mainApp);
