@@ -14,12 +14,6 @@ export class SlackService {
   private client: WebClient;
 
   constructor(token: string) {
-    logger.info('Initializing Slack service', { tokenProvided: !!token });
-    
-    if (!token) {
-      logger.error('Slack Bot Token is missing');
-    }
-    
     this.client = new WebClient(token);
   }
 
@@ -36,11 +30,7 @@ export class SlackService {
       today.setHours(0, 0, 0, 0);
       const oldest = (today.getTime() / 1000).toString();
       
-      logger.info('Fetching messages since', { 
-        timestamp: oldest, 
-        date: today.toISOString(),
-        channelId 
-      });
+      logger.info('Fetching messages since', { timestamp: oldest, date: today.toISOString() });
       
       const result = await this.client.conversations.history({
         channel: channelId,
@@ -48,20 +38,9 @@ export class SlackService {
         limit: 1000 // Adjust as needed
       });
       
-      const messages = (result.messages || []) as SlackMessage[];
-      logger.info('Retrieved messages', { 
-        count: messages.length,
-        channelId,
-        hasMore: result.has_more || false
-      });
-      
-      return messages;
+      return (result.messages || []) as SlackMessage[];
     } catch (error) {
-      logger.error('Error getting channel messages:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        channelId
-      });
+      logger.error('Error getting channel messages:', error);
       throw error;
     }
   }
@@ -129,22 +108,10 @@ export class SlackService {
    */
   async postMessage(channelId: string, text: string, threadTs?: string): Promise<string> {
     try {
-      logger.info('Posting message to channel', { 
-        channelId, 
-        textLength: text.length,
-        textPreview: text.substring(0, 50) + '...'
-      });
-      
       const result = await this.client.chat.postMessage({
         channel: channelId,
         text,
-        thread_ts: threadTs,
-        mrkdwn: true
-      });
-      
-      logger.info('Message posted successfully', { 
-        timestamp: result.ts,
-        channelId
+        thread_ts: threadTs
       });
       
       if (!result.ok || !result.ts) {
@@ -153,11 +120,7 @@ export class SlackService {
       
       return result.ts;
     } catch (error) {
-      logger.error('Error posting message:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        channelId
-      });
+      logger.error('Error posting message:', error);
       throw error;
     }
   }
@@ -169,22 +132,19 @@ export class SlackService {
    */
   async listChannels() {
     try {
-      logger.info('Listing Slack channels');
-      
       const result = await this.client.conversations.list({
         exclude_archived: true,
         types: 'public_channel'
       });
-      
-      const channels = result.channels || [];
-      logger.info('Retrieved channels', { count: channels.length });
-      
-      return channels;
+      return result.channels || [];
     } catch (error) {
-      logger.error('Error listing channels:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error'
-      });
+      // 개발 환경에서는 API 오류를 로그만 남기고 빈 배열 반환
+      if (process.env.NODE_ENV !== 'production') {
+        logger.debug('Error listing channels (development environment):', error);
+        return [];
+      }
+      // 프로덕션 환경에서는 정상적으로 오류 로깅 및 예외 발생
+      logger.error('Error listing channels:', error);
       throw error;
     }
   }
@@ -197,11 +157,6 @@ export class SlackService {
    * @returns Formatted message text
    */
   formatSummaryResponse(summary: string, actionItems: string[]): string {
-    logger.info('Formatting summary response', { 
-      summaryLength: summary.length, 
-      actionItemCount: actionItems.length 
-    });
-    
     let response = `*Summary:*\n${summary}\n\n`;
     
     if (actionItems && actionItems.length > 0) {

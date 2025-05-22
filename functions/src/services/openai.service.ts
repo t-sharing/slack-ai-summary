@@ -5,12 +5,6 @@ export class OpenAIService {
   private openai: OpenAI;
 
   constructor(apiKey: string) {
-    logger.info('Initializing OpenAI service', { apiKeyProvided: !!apiKey });
-    
-    if (!apiKey) {
-      logger.error('OpenAI API key is missing');
-    }
-    
     this.openai = new OpenAI({ apiKey });
   }
 
@@ -20,16 +14,12 @@ export class OpenAIService {
   async generateSummary(messages: string[]): Promise<{ summary: string; actionItems: string[] }> {
     try {
       if (!messages || messages.length === 0) {
-        logger.info('No messages to summarize');
         return { summary: "No messages to summarize.", actionItems: [] };
       }
       
       // Combine all messages into a single text for the prompt
       const combinedMessages = messages.join('\n\n');
-      logger.info('Generating summary for messages', { 
-        messageCount: messages.length,
-        sampleMessage: messages[0]?.substring(0, 50) + '...'
-      });
+      logger.info('Generating summary for messages', { messageCount: messages.length });
       
       // Create the prompt for ChatGPT
       const prompt = `You are a helpful assistant that summarizes slack conversations.
@@ -44,8 +34,6 @@ Please respond in JSON format with two keys:
 - "summary": a paragraph summarizing the discussion
 - "actionItems": an array of strings, each being an action item`;
       
-      logger.info('Calling OpenAI API', { model: "gpt-4o" });
-      
       // Call the OpenAI API
       const response = await this.openai.chat.completions.create({
         model: "gpt-4o",  // You can change this to a different model as needed
@@ -59,12 +47,6 @@ Please respond in JSON format with two keys:
       
       // Extract the content from the response
       const content = response.choices[0]?.message?.content;
-      logger.info('Received response from OpenAI', { 
-        hasContent: !!content,
-        responseFirstChars: content ? content.substring(0, 50) + '...' : 'N/A',
-        finishReason: response.choices[0]?.finish_reason
-      });
-      
       if (!content) {
         throw new Error('No content returned from OpenAI');
       }
@@ -72,20 +54,12 @@ Please respond in JSON format with two keys:
       // Parse the JSON response
       try {
         const parsedResponse = JSON.parse(content);
-        logger.info('Successfully parsed OpenAI response', {
-          hasSummary: !!parsedResponse.summary,
-          actionItemCount: Array.isArray(parsedResponse.actionItems) ? parsedResponse.actionItems.length : 0
-        });
-        
         return {
           summary: parsedResponse.summary || "No summary generated.",
           actionItems: Array.isArray(parsedResponse.actionItems) ? parsedResponse.actionItems : []
         };
       } catch (parseError) {
-        logger.error('Error parsing OpenAI response', {
-          error: parseError,
-          content: content
-        });
+        logger.error('Error parsing OpenAI response', parseError);
         // If JSON parsing fails, return a default response
         return {
           summary: "Failed to parse the AI-generated summary.",
@@ -93,11 +67,7 @@ Please respond in JSON format with two keys:
         };
       }
     } catch (error) {
-      logger.error('Error generating summary with OpenAI:', {
-        error: error,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        errorName: error instanceof Error ? error.name : 'Not an Error object'
-      });
+      logger.error('Error generating summary with OpenAI:', error);
       throw error;
     }
   }

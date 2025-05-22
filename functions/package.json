@@ -8,15 +8,22 @@
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "deploy:prod": "NODE_ENV=production npm run build && firebase deploy --only functions",
+    "deploy:quiet": "NODE_ENV=production npm run build && firebase deploy --only functions --quiet",
+    "logs": "firebase functions:log",
+    "setup-env": "node setup-env.js"
   },
   "engines": {
     "node": "22"
   },
   "main": "lib/index.js",
   "dependencies": {
-    "firebase-admin": "^12.6.0",
-    "firebase-functions": "^6.0.1"
+    "@slack/bolt": "^4.4.0",
+    "axios": "^1.6.7",
+    "express": "^5.1.0",
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.0.1",
+    "openai": "^4.100.0"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.12.0",

@@ -8,7 +8,7 @@ export const slackConfig: SlackConfig = {
   token: process.env.SLACK_BOT_TOKEN || '',
   signingSecret: process.env.SLACK_SIGNING_SECRET || '',
   defaultSummaryChannel: process.env.DEFAULT_SUMMARY_CHANNEL || '',
-  port: parseInt(process.env.PORT || '3000', 10)
+  port: parseInt(process.env.APP_PORT || '3000', 10)
 };
 
 export const openaiConfig: OpenAIConfig = {

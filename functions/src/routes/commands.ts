@@ -93,11 +93,11 @@ export const registerCommands = (
       const formattedSummary = slackService.formatSummaryResponse(summary, actionItems);
       const summaryHeader = `*Summary of today's messages in #${channelName}*\n\n`;
       
-      // Post the summary in the target channel (not the channel where command was executed)
+      // Post the summary in the channel
       logger.info('Posting summary to channel', { channelId: targetChannel });
       await slackService.postMessage(targetChannel, summaryHeader + formattedSummary);
       
-      // Notify the user
+      // Notify the user of success only after everything else has completed successfully
       logger.info('Notifying user of successful summary');
       await respond({
         text: `:white_check_mark: Summary generated and posted to #${channelName}.`,
@@ -105,8 +105,27 @@ export const registerCommands = (
       });
     } catch (error) {
       logger.error('Error handling /summary-today command:', error);
+      
+      // 오류의 종류에 따라 더 구체적인 메시지 제공
+      let errorMessage = 'An error occurred while generating the summary.';
+      
+      if (error instanceof Error) {
+        // OpenAI 관련 오류 체크
+        if (error.message.includes('quota') || error.message.includes('rate limit')) {
+          errorMessage = 'OpenAI API quota exceeded or rate limited. Please try again later or check your API key settings.';
+        } 
+        // Slack 채널 접근 권한 오류 체크
+        else if (error.message.includes('not_in_channel')) {
+          errorMessage = 'The bot is not in this channel. Please invite the bot to the channel first using `/invite @YourBotName`.';
+        }
+        // 그 외 오류는 간결하게 표시
+        else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
       await respond({
-        text: `An error occurred while generating the summary: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        text: errorMessage,
         response_type: 'ephemeral'
       });
     }
