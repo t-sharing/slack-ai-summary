@@ -65,6 +65,43 @@ To view the Firebase function logs:
 npm run logs
 ```
 
+### Code Architecture
+
+The codebase follows a modular architecture for better maintainability:
+
+```
+src/
+├── interfaces/           # TypeScript interfaces
+│   └── slack-interfaces.ts
+├── routes/               # Request handlers
+│   ├── actions.ts        # Shortcut and interactive handlers
+│   └── commands.ts       # Slash command handlers
+├── services/             # Core business logic
+│   ├── openai.service.ts # OpenAI API integration
+│   └── slack.service.ts  # Slack API integration
+├── utils/                # Shared utilities
+│   ├── error-handler.ts  # Error handling utilities
+│   └── message-utils.ts  # Message processing utilities
+└── index.ts              # Main entry point
+```
+
+#### Key Design Principles
+
+1. **Separation of Concerns**:
+   - Services handle external API interactions
+   - Routes manage request handling and flow control
+   - Utilities provide reusable helper functions
+
+2. **Error Handling Strategy**:
+   - Centralized error formatting in `error-handler.ts`
+   - Consistent error logging across all components
+   - User-friendly error messages with specific guidance
+
+3. **Code Reusability**:
+   - Common patterns extracted to utility functions
+   - Shared interfaces for type consistency
+   - Standardized API result validation
+
 ## Troubleshooting
 
 ### Environment Variables Not Loading

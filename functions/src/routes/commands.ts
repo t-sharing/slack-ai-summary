@@ -2,6 +2,8 @@ import { App } from '@slack/bolt';
 import { SlackService } from '../services/slack.service';
 import { OpenAIService } from '../services/openai.service';
 import * as logger from 'firebase-functions/logger';
+import { logAndFormatError } from '../utils/error-handler';
+import { extractMessageTexts, formatChannelInput, getChannelSummaryHeader } from '../utils/message-utils';
 
 export const registerCommands = (
   app: App,
@@ -36,18 +38,13 @@ export const registerCommands = (
           logger.info('Got response ID for loading message', { responseId });
         }
         
-        let targetChannel = command.text.trim();
+        let targetChannel = formatChannelInput(command.text);
         
         // If no channel is specified, use the channel where the command was issued
         if (!targetChannel) {
           targetChannel = command.channel_id;
           logger.info('Using current channel as target', { targetChannel });
         } else {
-          // Strip # if present and find the channel ID
-          if (targetChannel.startsWith('#')) {
-            targetChannel = targetChannel.substring(1);
-          }
-          
           // Try to find the channel ID if a name was provided
           if (!targetChannel.startsWith('C')) {
             logger.info('Looking up channel by name', { channelName: targetChannel });
@@ -102,7 +99,7 @@ export const registerCommands = (
         logger.info('Retrieved channel info', { channelName });
         
         // Extract message texts and filter out empty ones
-        const messageTexts = messages.map(msg => msg.text).filter(Boolean) as string[];
+        const messageTexts = extractMessageTexts(messages);
         
         // Generate summary
         logger.info('Generating summary with OpenAI', { messageCount: messageTexts.length });
@@ -111,7 +108,7 @@ export const registerCommands = (
         
         // Format and post the summary
         const formattedSummary = slackService.formatSummaryResponse(topic, summary, actionItems);
-        const summaryHeader = `*Summary of today's messages in #${channelName}*\n\n`;
+        const summaryHeader = getChannelSummaryHeader(channelName);
         
         // Post the summary in the channel
         logger.info('Posting summary to channel', { channelId: targetChannel });
@@ -125,25 +122,18 @@ export const registerCommands = (
           replace_original: true
         });
       } catch (error) {
-        logger.error('Error handling /summary-today command:', error);
+        const errorContext = { 
+          errorSource: 'Error handling /summary-today command',
+          command: command.command,
+          userId: command.user_id,
+          channelId: command.channel_id
+        };
         
-        // 오류의 종류에 따라 더 구체적인 메시지 제공
-        let errorMessage = 'An error occurred while generating the summary.';
-        
-        if (error instanceof Error) {
-          // OpenAI 관련 오류 체크
-          if (error.message.includes('quota') || error.message.includes('rate limit')) {
-            errorMessage = 'OpenAI API quota exceeded or rate limited. Please try again later or check your API key settings.';
-          } 
-          // Slack 채널 접근 권한 오류 체크
-          else if (error.message.includes('not_in_channel')) {
-            errorMessage = 'The bot is not in this channel. Please invite the bot to the channel first using `/invite @YourBotName`.';
-          }
-          // 그 외 오류는 간결하게 표시
-          else {
-            errorMessage = `Error: ${error.message}`;
-          }
-        }
+        const errorMessage = logAndFormatError(
+          error, 
+          errorContext, 
+          'An error occurred while generating the summary.'
+        );
         
         try {
           // 기존 로딩 메시지가 있으면 이를 대체

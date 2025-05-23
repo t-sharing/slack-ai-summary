@@ -1,14 +1,7 @@
 import { WebClient } from '@slack/web-api';
 import * as logger from 'firebase-functions/logger';
-
-// Define the SlackMessage interface for better type safety
-interface SlackMessage {
-  type: string;
-  user: string;
-  text: string;
-  ts: string;
-  [key: string]: any;
-}
+import { SlackMessage } from '../interfaces/slack-interfaces';
+import { validateSlackApiResult } from '../utils/error-handler';
 
 export class SlackService {
   private client: WebClient;
@@ -83,6 +76,7 @@ export class SlackService {
         limit: 1000 // Adjust as needed
       });
       
+      validateSlackApiResult(result, 'Failed to fetch messages');
       return (result.messages || []) as SlackMessage[];
     } catch (error) {
       logger.error('Error getting channel messages:', error);
@@ -107,11 +101,8 @@ export class SlackService {
         limit: 1000 // Adjust as needed
       });
       
-      if (!result.ok || !result.messages) {
-        throw new Error(`Failed to fetch messages: ${result.error || 'Unknown error'}`);
-      }
-      
-      return result.messages as SlackMessage[];
+      validateSlackApiResult(result, 'Failed to fetch messages');
+      return (result.messages || []) as SlackMessage[];
     } catch (error) {
       logger.error(`Error fetching messages for channel ${channelId}:`, error);
       throw error;
@@ -132,11 +123,8 @@ export class SlackService {
         ts: threadTs
       });
       
-      if (!result.ok || !result.messages) {
-        throw new Error(`Failed to fetch thread replies: ${result.error || 'Unknown error'}`);
-      }
-      
-      return result.messages as SlackMessage[];
+      validateSlackApiResult(result, 'Failed to fetch thread replies');
+      return (result.messages || []) as SlackMessage[];
     } catch (error) {
       logger.error(`Error fetching thread replies for ${threadTs} in channel ${channelId}:`, error);
       throw error;
@@ -159,11 +147,8 @@ export class SlackService {
         thread_ts: threadTs
       });
       
-      if (!result.ok || !result.ts) {
-        throw new Error(`Failed to post message: ${result.error || 'Unknown error'}`);
-      }
-      
-      return result.ts;
+      validateSlackApiResult(result, 'Failed to post message');
+      return result.ts as string;
     } catch (error) {
       logger.error('Error posting message:', error);
       throw error;
@@ -181,6 +166,8 @@ export class SlackService {
         exclude_archived: true,
         types: 'public_channel'
       });
+      
+      validateSlackApiResult(result, 'Failed to list channels');
       return result.channels || [];
     } catch (error) {
       // 개발 환경에서는 API 오류를 로그만 남기고 빈 배열 반환

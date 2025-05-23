@@ -4,6 +4,7 @@ A Slack bot that uses OpenAI's GPT-4 to summarize messages and extract action it
 
 ## Recent Updates
 
+- **2025-05-23**: Code refactoring - Improved code structure with utility functions and better error handling
 - **2025-05-23**: Code cleanup - Removed unused DEFAULT_SUMMARY_CHANNEL environment variable and related code
 - **2025-05-22**: Added timezone awareness to respect user's local timezone when determining "today's" messages
 - **2025-05-21**: Added thread summarization with automatic detection of standalone messages vs. threads
@@ -246,6 +247,43 @@ This bot implements several optimizations to ensure reliable performance with Sl
    - Extended timeout (120 seconds)
    - Maintains minimum instances for faster response
 5. **Response Time Monitoring**: Logs request processing times for performance analysis
+
+## Code Structure and Design
+
+The project follows a modular architecture for better maintainability and extensibility:
+
+### Core Components
+
+1. **Service Layer**:
+   - `SlackService`: Handles all Slack API interactions
+   - `OpenAIService`: Manages communication with OpenAI for generating summaries
+
+2. **Route Handlers**:
+   - `commands.ts`: Processes slash commands like `/summary-today`
+   - `actions.ts`: Handles message shortcuts and interactive components
+
+3. **Utilities**:
+   - `error-handler.ts`: Centralizes error handling and formatting
+   - `message-utils.ts`: Provides helper functions for message processing
+
+4. **Type Definitions**:
+   - `slack-interfaces.ts`: Contains TypeScript interfaces for Slack API objects
+
+### Error Handling
+
+The application implements a robust error handling strategy:
+- Standardized error messages for common issues
+- Consistent logging format across all components
+- User-friendly error messages with specific guidance
+- Graceful fallbacks for API failures
+
+### Extensibility
+
+Adding new features is straightforward:
+1. Define any new interfaces in the appropriate interface file
+2. Add utility functions for reusable logic
+3. Implement the feature in the relevant service
+4. Connect it to the appropriate route handler
 
 ## Configuration Options
 

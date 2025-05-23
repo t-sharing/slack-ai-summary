@@ -2,21 +2,9 @@ import { App } from '@slack/bolt';
 import { SlackService } from '../services/slack.service';
 import { OpenAIService } from '../services/openai.service';
 import * as logger from 'firebase-functions/logger';
-
-// Define the correct type for our message shortcut payload
-interface MessageShortcutPayload {
-  type: 'message_action';
-  callback_id: string;
-  user: { id: string };
-  message: {
-    ts: string;
-    text?: string;
-    thread_ts?: string;
-    channel?: { id: string };
-  };
-  channel: { id: string };
-  response_url: string;
-}
+import { MessageShortcutPayload } from '../interfaces/slack-interfaces';
+import { logAndFormatError } from '../utils/error-handler';
+import { extractMessageTexts, getSummaryHeader } from '../utils/message-utils';
 
 export const registerActions = (
   app: App,
@@ -71,7 +59,7 @@ export const registerActions = (
         
         // 메시지 요약 대상 결정 변수
         let messagesToSummarize: string[] = [];
-        let summaryTitle = '';
+        let isThread = false;
         let replyThreadTs: string | undefined;
         
         // 메시지가 스레드의 일부인지 확인 (부모 또는 답글)
@@ -81,8 +69,8 @@ export const registerActions = (
           const threadMessages = await slackService.getThreadReplies(channelId, messageShortcut.message.thread_ts);
           
           if (threadMessages && threadMessages.length > 0) {
-            messagesToSummarize = threadMessages.map(msg => msg.text).filter(Boolean) as string[];
-            summaryTitle = '*Thread Summary*\n\n';
+            messagesToSummarize = extractMessageTexts(threadMessages);
+            isThread = true;
             replyThreadTs = messageShortcut.message.thread_ts;
           } else {
             throw new Error('Could not fetch thread messages');
@@ -94,8 +82,8 @@ export const registerActions = (
           if (threadMessages && threadMessages.length > 1) {
             // 케이스 2: 메시지가 답글이 있는 부모 메시지인 경우
             logger.info('Message is a parent with replies', { messageTs, replyCount: threadMessages.length - 1 });
-            messagesToSummarize = threadMessages.map(msg => msg.text).filter(Boolean) as string[];
-            summaryTitle = '*Thread Summary*\n\n';
+            messagesToSummarize = extractMessageTexts(threadMessages);
+            isThread = true;
             replyThreadTs = messageTs;
           } else {
             // 케이스 3: 메시지가 독립 메시지인 경우 (스레드 없음)
@@ -103,7 +91,6 @@ export const registerActions = (
             // 이 단일 메시지만 요약
             if (messageShortcut.message.text) {
               messagesToSummarize = [messageShortcut.message.text];
-              summaryTitle = '*Message Summary*\n\n';
               replyThreadTs = messageTs; // 메시지 자체에 답글로 달기
             } else {
               // 페이로드에 메시지 텍스트가 없으면 직접 가져오기
@@ -119,7 +106,6 @@ export const registerActions = (
                   const messageText = result.messages[0].text;
                   if (messageText) {
                     messagesToSummarize = [messageText];
-                    summaryTitle = '*Message Summary*\n\n';
                     replyThreadTs = messageTs;
                   } else {
                     throw new Error('Message has no text content');
@@ -153,10 +139,11 @@ export const registerActions = (
         
         // Format and post the summary
         const formattedSummary = slackService.formatSummaryResponse(topic, summary, actionItems);
+        const summaryHeader = getSummaryHeader(isThread);
         
         // Post as a reply to the thread or message
         logger.info('Posting summary', { channelId, threadTs: replyThreadTs });
-        await slackService.postMessage(channelId, summaryTitle + formattedSummary, replyThreadTs);
+        await slackService.postMessage(channelId, summaryHeader + formattedSummary, replyThreadTs);
         
         // 로딩 메시지 대신 성공 메시지 전송
         logger.info('Sending success notification to user');
@@ -166,7 +153,8 @@ export const registerActions = (
           text: ':white_check_mark: Summary generated and posted as a reply.'
         });
       } catch (error) {
-        logger.error('Error handling summarize_thread shortcut:', error);
+        const errorContext = { errorSource: 'Error handling summarize_thread shortcut' };
+        logger.error(errorContext.errorSource, error);
         
         // Send error to the user
         try {
@@ -175,23 +163,11 @@ export const registerActions = (
             const userId = messageShortcut.user.id;
             const channelId = messageShortcut.channel.id;
             
-            // 오류의 종류에 따라 더 구체적인 메시지 제공
-            let errorMessage = 'An error occurred while summarizing.';
-            
-            if (error instanceof Error) {
-              // OpenAI 관련 오류 체크
-              if (error.message.includes('quota') || error.message.includes('rate limit')) {
-                errorMessage = 'OpenAI API quota exceeded or rate limited. Please try again later or check your API key settings.';
-              } 
-              // Slack 채널 접근 권한 오류 체크
-              else if (error.message.includes('not_in_channel')) {
-                errorMessage = 'The bot is not in this channel. Please invite the bot to the channel first using `/invite @YourBotName`.';
-              }
-              // 그 외 오류는 간결하게 표시
-              else {
-                errorMessage = `Error: ${error.message}`;
-              }
-            }
+            const errorMessage = logAndFormatError(
+              error, 
+              errorContext, 
+              'An error occurred while summarizing.'
+            );
             
             await client.chat.postEphemeral({
               channel: channelId,
