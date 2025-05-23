@@ -62,11 +62,7 @@ async function main() {
     }
 
     // Collect variables
-    console.log('Please enter your credentials:');
-    const slackBotToken = await askQuestion('Slack Bot Token (xoxb-...): ');
-    const slackSigningSecret = await askQuestion('Slack Signing Secret: ');
-    const openaiApiKey = await askQuestion('OpenAI API Key: ');
-    const defaultChannel = await askQuestion('Default Slack channel for summaries (default: general): ') || 'general';
+    console.log('Please enter your credentials when prompted by Firebase CLI:');
 
     console.log('\nSetting Firebase environment variables...');
     
@@ -81,9 +77,6 @@ async function main() {
       
       await execCommand(`firebase functions:secrets:set OPENAI_API_KEY`);
       console.log('Paste your OpenAI API Key when prompted and press Enter.');
-      
-      await execCommand(`firebase functions:secrets:set DEFAULT_SUMMARY_CHANNEL`);
-      console.log('Paste your Default Summary Channel when prompted and press Enter.');
       
       console.log('✅ Firebase environment variables set successfully!');
       

@@ -25,16 +25,14 @@ admin.initializeApp();
 const config = {
   SLACK_SIGNING_SECRET: process.env.SLACK_SIGNING_SECRET || '',
   SLACK_BOT_TOKEN: process.env.SLACK_BOT_TOKEN || '',
-  OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
-  DEFAULT_SUMMARY_CHANNEL: process.env.DEFAULT_SUMMARY_CHANNEL || 'general'
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || ''
 };
 
 // Log configuration status
 logger.info('Initializing with configuration', {
   hasSigningSecret: !!config.SLACK_SIGNING_SECRET,
   hasBotToken: !!config.SLACK_BOT_TOKEN,
-  hasOpenAIKey: !!config.OPENAI_API_KEY,
-  defaultSummaryChannel: config.DEFAULT_SUMMARY_CHANNEL
+  hasOpenAIKey: !!config.OPENAI_API_KEY
 });
 
 // 기존 오류 로깅 코드를 조건부 로깅으로 변경
@@ -172,7 +170,7 @@ const app = new App({
 });
 
 // Register command handlers
-registerCommands(app, slackService, openaiService, config.DEFAULT_SUMMARY_CHANNEL);
+registerCommands(app, slackService, openaiService);
 
 // Register action handlers (shortcuts, interactive components)
 registerActions(app, slackService, openaiService);
@@ -199,8 +197,7 @@ export const slackEvents = onRequest({
   secrets: [
     'SLACK_BOT_TOKEN',
     'SLACK_SIGNING_SECRET',
-    'OPENAI_API_KEY',
-    'DEFAULT_SUMMARY_CHANNEL'
+    'OPENAI_API_KEY'
   ],
   memory: '1GiB',  // 메모리 증가
   timeoutSeconds: 120,  // 타임아웃 증가 (최대 540초까지 가능)

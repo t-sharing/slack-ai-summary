@@ -2,6 +2,13 @@
 
 A Slack bot that uses OpenAI's GPT-4 to summarize messages and extract action items from Slack channels and threads.
 
+## Recent Updates
+
+- **2025-05-23**: Code cleanup - Removed unused DEFAULT_SUMMARY_CHANNEL environment variable and related code
+- **2025-05-22**: Added timezone awareness to respect user's local timezone when determining "today's" messages
+- **2025-05-21**: Added thread summarization with automatic detection of standalone messages vs. threads
+- **2025-05-20**: Improved summary format with topic sections and more concise output
+
 ## Features
 
 1. **Summarize today's messages across Slack channels**
@@ -140,14 +147,12 @@ npm run setup-env
      - SLACK_BOT_TOKEN
      - SLACK_SIGNING_SECRET
      - OPENAI_API_KEY
-     - DEFAULT_SUMMARY_CHANNEL
 
    - Alternatively, you can set these secrets manually:
 ```bash
 firebase functions:secrets:set SLACK_BOT_TOKEN
 firebase functions:secrets:set SLACK_SIGNING_SECRET
 firebase functions:secrets:set OPENAI_API_KEY
-firebase functions:secrets:set DEFAULT_SUMMARY_CHANNEL
 ```
 
 ### 6. Build and Deploy

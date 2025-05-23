@@ -35,7 +35,6 @@ If you prefer to set up manually, use these Firebase CLI commands:
 # Set Slack credentials
 firebase functions:config:set slack.bot_token="xoxb-your-bot-token"
 firebase functions:config:set slack.signing_secret="your-slack-signing-secret"
-firebase functions:config:set slack.default_channel="general"
 
 # Set OpenAI API key
 firebase functions:config:set openai.api_key="your-openai-api-key"

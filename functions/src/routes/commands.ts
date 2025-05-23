@@ -6,8 +6,7 @@ import * as logger from 'firebase-functions/logger';
 export const registerCommands = (
   app: App,
   slackService: SlackService,
-  openaiService: OpenAIService,
-  defaultSummaryChannel: string
+  openaiService: OpenAIService
 ) => {
   /**
    * Command: /summary-today #channel
