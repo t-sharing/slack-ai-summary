@@ -8,9 +8,11 @@ A Slack bot that uses OpenAI's GPT-4 to summarize messages and extract action it
    - Use the `/summary-today #channel` slash command to summarize all messages in a channel from today
    - The bot fetches messages, generates a summary, and posts it to the channel
 
-2. **Summarize thread conversations**
+2. **Summarize thread conversations and individual messages**
    - Use the "Summarize this thread" message shortcut on any message
-   - The bot generates a concise summary of the entire thread and posts it as a reply
+   - If the selected message is part of a thread (either as a parent or reply), the bot summarizes the entire thread
+   - If the selected message is a standalone message with no replies, the bot summarizes just that message
+   - The summary is posted as a reply to maintain context
 
 3. **Extract action items**
    - Automatically identifies and extracts to-do items and action points from conversations
@@ -76,7 +78,7 @@ npm install
    - Set Request URL to: `https://slackevents-5hwpwaphqa-uc.a.run.app/slack/events` (update with your actual URL)
    - Add a message shortcut:
      - Name: "Summarize this thread"
-     - Short Description: "Generate a summary of this thread"
+     - Short Description: "Generate a summary of this thread or message"
      - Callback ID: `summarize_thread`
 
 8. Under "Event Subscriptions":
@@ -157,11 +159,14 @@ After deployment, Firebase will provide a function URL (e.g., `https://slackeven
 
 If you don't specify a channel, it will summarize the current channel.
 
-### Summarize a thread
+### Summarize a thread or message
 
 1. Click the "..." (more actions) menu on any message
 2. Select "Summarize this thread"
-3. The summary will be posted as a reply in the thread
+3. The bot will determine if the message is:
+   - Part of a thread (either as parent or reply): It will summarize the entire thread
+   - A standalone message: It will summarize just that message
+4. The summary will be posted as a reply to maintain context
 
 ### Important Notes
 

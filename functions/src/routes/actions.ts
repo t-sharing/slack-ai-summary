@@ -11,6 +11,7 @@ interface MessageShortcutPayload {
   message: {
     ts: string;
     text?: string;
+    thread_ts?: string;
     channel?: { id: string };
   };
   channel: { id: string };
@@ -48,17 +49,18 @@ export const registerActions = (
         const messageTs = messageShortcut.message.ts;
         const userId = messageShortcut.user.id;
         
-        logger.info('Processing thread summary request', {
+        logger.info('Processing summary request', {
           channelId,
           messageTs,
-          userId
+          userId,
+          hasThreadTs: !!messageShortcut.message.thread_ts
         });
         
         // 로딩 메시지 전송 - 나중에 업데이트하기 위해 타임스탬프 저장
         const loadingMessage = await client.chat.postEphemeral({
           channel: channelId,
           user: userId,
-          text: ':hourglass: Fetching thread messages and generating summary...'
+          text: ':hourglass: Fetching messages and generating summary...'
         });
         
         // 로딩 메시지 타임스탬프 저장 (있는 경우)
@@ -67,45 +69,101 @@ export const registerActions = (
           logger.info('Sent loading message', { loadingMessageTs });
         }
         
-        // Get all messages in the thread
-        logger.info('Fetching thread replies', { channelId, messageTs });
-        const messages = await slackService.getThreadReplies(channelId, messageTs);
+        // 메시지 요약 대상 결정 변수
+        let messagesToSummarize: string[] = [];
+        let summaryTitle = '';
+        let replyThreadTs: string | undefined;
         
-        if (messages.length <= 1) {
-          logger.info('Thread has no replies', { channelId, messageTs });
-          // 로딩 메시지를 업데이트하는 대신 새 메시지 전송
+        // 메시지가 스레드의 일부인지 확인 (부모 또는 답글)
+        if (messageShortcut.message.thread_ts) {
+          // 케이스 1: 메시지가 스레드 내 답글인 경우
+          logger.info('Message is a reply in a thread', { threadTs: messageShortcut.message.thread_ts });
+          const threadMessages = await slackService.getThreadReplies(channelId, messageShortcut.message.thread_ts);
+          
+          if (threadMessages && threadMessages.length > 0) {
+            messagesToSummarize = threadMessages.map(msg => msg.text).filter(Boolean) as string[];
+            summaryTitle = '*Thread Summary*\n\n';
+            replyThreadTs = messageShortcut.message.thread_ts;
+          } else {
+            throw new Error('Could not fetch thread messages');
+          }
+        } else {
+          // 메시지가 스레드의 부모인지 확인
+          const threadMessages = await slackService.getThreadReplies(channelId, messageTs);
+          
+          if (threadMessages && threadMessages.length > 1) {
+            // 케이스 2: 메시지가 답글이 있는 부모 메시지인 경우
+            logger.info('Message is a parent with replies', { messageTs, replyCount: threadMessages.length - 1 });
+            messagesToSummarize = threadMessages.map(msg => msg.text).filter(Boolean) as string[];
+            summaryTitle = '*Thread Summary*\n\n';
+            replyThreadTs = messageTs;
+          } else {
+            // 케이스 3: 메시지가 독립 메시지인 경우 (스레드 없음)
+            logger.info('Message is a standalone message', { messageTs });
+            // 이 단일 메시지만 요약
+            if (messageShortcut.message.text) {
+              messagesToSummarize = [messageShortcut.message.text];
+              summaryTitle = '*Message Summary*\n\n';
+              replyThreadTs = messageTs; // 메시지 자체에 답글로 달기
+            } else {
+              // 페이로드에 메시지 텍스트가 없으면 직접 가져오기
+              try {
+                const result = await client.conversations.history({
+                  channel: channelId,
+                  latest: messageTs,
+                  inclusive: true,
+                  limit: 1
+                });
+                
+                if (result.ok && result.messages && result.messages.length > 0) {
+                  const messageText = result.messages[0].text;
+                  if (messageText) {
+                    messagesToSummarize = [messageText];
+                    summaryTitle = '*Message Summary*\n\n';
+                    replyThreadTs = messageTs;
+                  } else {
+                    throw new Error('Message has no text content');
+                  }
+                } else {
+                  throw new Error('Could not find the message');
+                }
+              } catch (historyError) {
+                logger.error('Error fetching message history:', historyError);
+                throw new Error('Failed to retrieve message content');
+              }
+            }
+          }
+        }
+        
+        // 요약할 메시지가 있는지 확인
+        if (messagesToSummarize.length === 0) {
           await client.chat.postEphemeral({
             channel: channelId,
             user: userId,
-            text: 'This thread has no replies to summarize.'
+            text: 'No message content found to summarize.'
           });
           return;
         }
         
-        logger.info('Retrieved thread messages', { count: messages.length });
-        
-        // Extract message texts and filter out empty ones
-        const messageTexts = messages.map(msg => msg.text).filter(Boolean) as string[];
+        logger.info('Generating summary', { messageCount: messagesToSummarize.length });
         
         // Generate summary
-        logger.info('Generating summary with OpenAI', { messageCount: messageTexts.length });
-        const { summary, actionItems } = await openaiService.generateSummary(messageTexts);
+        const { summary, actionItems } = await openaiService.generateSummary(messagesToSummarize);
         logger.info('Summary generated successfully');
         
         // Format and post the summary
         const formattedSummary = slackService.formatSummaryResponse(summary, actionItems);
-        const summaryHeader = '*Thread Summary*\n\n';
         
-        // Post as a reply to the thread
-        logger.info('Posting summary to thread', { channelId, threadTs: messageTs });
-        await slackService.postMessage(channelId, summaryHeader + formattedSummary, messageTs);
+        // Post as a reply to the thread or message
+        logger.info('Posting summary', { channelId, threadTs: replyThreadTs });
+        await slackService.postMessage(channelId, summaryTitle + formattedSummary, replyThreadTs);
         
         // 로딩 메시지 대신 성공 메시지 전송
         logger.info('Sending success notification to user');
         await client.chat.postEphemeral({
           channel: channelId,
           user: userId,
-          text: ':white_check_mark: Thread summary generated and posted as a reply.'
+          text: ':white_check_mark: Summary generated and posted as a reply.'
         });
       } catch (error) {
         logger.error('Error handling summarize_thread shortcut:', error);
@@ -118,7 +176,7 @@ export const registerActions = (
             const channelId = messageShortcut.channel.id;
             
             // 오류의 종류에 따라 더 구체적인 메시지 제공
-            let errorMessage = 'An error occurred while summarizing the thread.';
+            let errorMessage = 'An error occurred while summarizing.';
             
             if (error instanceof Error) {
               // OpenAI 관련 오류 체크
