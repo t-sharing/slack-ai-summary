@@ -91,11 +91,11 @@ npm install
      - Command: `/summary-today`
      - Short Description: "Summarize today's messages in a channel"
      - Usage Hint: "#channel"
-     - Request URL: `https://slackevents-5hwpwaphqa-uc.a.run.app/slack/events` (update with your actual URL)
+     - Request URL: `https://your-firebase-function-url/slack/events` (update with your actual URL)
      - Escape channels, users, and links: Checked
 7. Under "Interactivity & Shortcuts":
    - Turn on Interactivity
-   - Set Request URL to: `https://slackevents-5hwpwaphqa-uc.a.run.app/slack/events` (update with your actual URL)
+   - Set Request URL to: `https://your-firebase-function-url/slack/events` (update with your actual URL)
    - Add a message shortcut:
      - Name: "Summarize this thread"
      - Short Description: "Generate a summary of this thread or message"
@@ -103,7 +103,7 @@ npm install
 
 8. Under "Event Subscriptions":
    - Enable Events
-   - Set Request URL to: `https://slackevents-5hwpwaphqa-uc.a.run.app/slack/events` (update with your actual URL)
+   - Set Request URL to: `https://your-firebase-function-url/slack/events` (update with your actual URL)
 
 ### 4. Set up OpenAI API access
 
@@ -165,7 +165,7 @@ npm run build
 npm run deploy:prod
 ```
 
-After deployment, Firebase will provide a function URL (e.g., `https://slackevents-5hwpwaphqa-uc.a.run.app`). Use this URL to update your Slack app configuration as mentioned in step 3.
+After deployment, Firebase will provide a function URL (e.g., `https://your-firebase-function-url`). Use this URL to update your Slack app configuration as mentioned in step 3.
 
 ## Usage
 
