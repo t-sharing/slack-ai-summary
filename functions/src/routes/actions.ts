@@ -148,11 +148,11 @@ export const registerActions = (
         logger.info('Generating summary', { messageCount: messagesToSummarize.length });
         
         // Generate summary
-        const { summary, actionItems } = await openaiService.generateSummary(messagesToSummarize);
+        const { topic, summary, actionItems } = await openaiService.generateSummary(messagesToSummarize);
         logger.info('Summary generated successfully');
         
         // Format and post the summary
-        const formattedSummary = slackService.formatSummaryResponse(summary, actionItems);
+        const formattedSummary = slackService.formatSummaryResponse(topic, summary, actionItems);
         
         // Post as a reply to the thread or message
         logger.info('Posting summary', { channelId, threadTs: replyThreadTs });

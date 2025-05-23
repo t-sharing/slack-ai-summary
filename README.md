@@ -6,7 +6,7 @@ A Slack bot that uses OpenAI's GPT-4 to summarize messages and extract action it
 
 1. **Summarize today's messages across Slack channels**
    - Use the `/summary-today #channel` slash command to summarize all messages in a channel from today
-   - The bot fetches messages, generates a summary, and posts it to the channel
+   - The bot fetches messages based on the user's timezone, generating a summary and posting it to the channel
 
 2. **Summarize thread conversations and individual messages**
    - Use the "Summarize this thread" message shortcut on any message
@@ -14,11 +14,20 @@ A Slack bot that uses OpenAI's GPT-4 to summarize messages and extract action it
    - If the selected message is a standalone message with no replies, the bot summarizes just that message
    - The summary is posted as a reply to maintain context
 
-3. **Extract action items**
+3. **Concise Topic-based Summaries**
+   - Each summary includes a clear topic that represents what the conversation is about
+   - Summaries are brief and concise, focusing only on the key points
+   - Formatted in a structured way for easy reading
+
+4. **Extract action items**
    - Automatically identifies and extracts to-do items and action points from conversations
    - Presents them in a clear, readable format
 
-4. **Optimized for Slack's response requirements**
+5. **Timezone-aware Summarization**
+   - Respects the user's timezone when determining "today's messages"
+   - Ensures accurate summarization regardless of the user's geographic location
+
+6. **Optimized for Slack's response requirements**
    - Implements fast acknowledgment pattern to prevent Slack timeout errors
    - Uses asynchronous processing for long-running tasks
    - Optimized memory and timeout settings for reliable performance
@@ -64,6 +73,9 @@ npm install
      - `im:read`
      - `mpim:history`
      - `mpim:read`
+     - `users:read`
+     - `users.profile:read` (Required for accessing user timezone information)
+     - `users:read.email` (Optional, for more detailed user information)
    - Install the app to your workspace
    - Copy the "Bot User OAuth Token" (starts with `xoxb-`)
 6. Under "Slash Commands":
@@ -159,6 +171,9 @@ After deployment, Firebase will provide a function URL (e.g., `https://slackeven
 
 If you don't specify a channel, it will summarize the current channel.
 
+- The system uses your Slack timezone settings to determine what "today" means for you
+- Messages are collected from midnight in your timezone until the current time
+
 ### Summarize a thread or message
 
 1. Click the "..." (more actions) menu on any message
@@ -168,6 +183,13 @@ If you don't specify a channel, it will summarize the current channel.
    - A standalone message: It will summarize just that message
 4. The summary will be posted as a reply to maintain context
 
+### Summary Format
+
+Each summary includes:
+- A clear topic that represents what the conversation is about
+- A brief summary of the main discussion points (2-3 sentences)
+- Action items listed with bullet points (if any)
+
 ### Important Notes
 
 1. Make sure the bot is invited to any channel you want to summarize. Use `/invite @YourBotName` in the channel.
@@ -176,12 +198,15 @@ If you don't specify a channel, it will summarize the current channel.
 
 3. If you see an error about OpenAI API quota or rate limits, check your API key settings and billing.
 
+4. The timezone feature requires the `users.profile:read` scope. If you see timezone-related issues, make sure this permission is granted to the bot.
+
 ## Troubleshooting
 
 - **Configuration Error**: Make sure all Firebase secrets are properly set
 - **Bot Not Responding**: Verify the URL settings in your Slack app configuration
 - **API Errors**: Check logs using `firebase functions:log`
 - **Slack Timeout Errors**: The app is optimized to respond quickly to Slack's requests, but if you still see timeout errors, check the Firebase function logs for details
+- **Timezone Issues**: Ensure the bot has the `users.profile:read` permission and verify your Slack profile has the correct timezone set
 
 ## Performance Optimizations
 

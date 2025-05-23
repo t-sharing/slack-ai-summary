@@ -18,19 +18,64 @@ export class SlackService {
   }
 
   /**
-   * Get today's messages from a channel
+   * Get a user's timezone offset in seconds
+   * 
+   * @param userId The Slack user ID
+   * @returns Timezone offset in seconds (e.g. 32400 for KST which is UTC+9)
+   */
+  async getUserTimezone(userId: string): Promise<number> {
+    try {
+      logger.info('Fetching user info for timezone', { userId });
+      const result = await this.client.users.info({
+        user: userId
+      });
+      
+      if (!result.ok || !result.user) {
+        logger.warn('Could not fetch user info, using UTC', { userId });
+        return 0; // Default to UTC if we can't get user timezone
+      }
+      
+      // Extract timezone offset in seconds
+      const tzOffset = result.user.tz_offset || 0;
+      logger.info('Got user timezone offset', { userId, tzOffset, tzName: result.user.tz });
+      
+      return tzOffset;
+    } catch (error) {
+      logger.error('Error getting user timezone:', error);
+      return 0; // Default to UTC on error
+    }
+  }
+
+  /**
+   * Get today's messages from a channel based on user's timezone
    * 
    * @param channelId The ID of the channel to fetch messages from
+   * @param userId The user ID to get timezone from (optional)
    * @returns Array of message objects
    */
-  async getTodayMessages(channelId: string): Promise<SlackMessage[]> {
+  async getTodayMessages(channelId: string, userId?: string): Promise<SlackMessage[]> {
     try {
-      // Calculate today's start timestamp (midnight)
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const oldest = (today.getTime() / 1000).toString();
+      // Get timezone offset if userId is provided
+      let tzOffset = 0;
+      if (userId) {
+        tzOffset = await this.getUserTimezone(userId);
+      }
       
-      logger.info('Fetching messages since', { timestamp: oldest, date: today.toISOString() });
+      // Calculate today's start timestamp (midnight in user's timezone)
+      const now = new Date();
+      // Convert current time to user's local time
+      const userLocalTime = new Date(now.getTime() + (tzOffset * 1000));
+      // Set to midnight in user's timezone
+      userLocalTime.setHours(0, 0, 0, 0);
+      // Convert back to UTC for the timestamp
+      const startOfDay = new Date(userLocalTime.getTime() - (tzOffset * 1000));
+      const oldest = (startOfDay.getTime() / 1000).toString();
+      
+      logger.info('Fetching messages since', { 
+        timestamp: oldest, 
+        date: startOfDay.toISOString(),
+        userTimezone: tzOffset / 3600 + " hours"
+      });
       
       const result = await this.client.conversations.history({
         channel: channelId,
@@ -152,12 +197,13 @@ export class SlackService {
   /**
    * Format a summary response with Slack markdown
    * 
+   * @param topic The conversation topic
    * @param summary The summary text
    * @param actionItems Array of action items
    * @returns Formatted message text
    */
-  formatSummaryResponse(summary: string, actionItems: string[]): string {
-    let response = `*Summary:*\n${summary}\n\n`;
+  formatSummaryResponse(topic: string, summary: string, actionItems: string[]): string {
+    let response = `*Topic:* ${topic}\n\n*Summary:*\n${summary}\n\n`;
     
     if (actionItems && actionItems.length > 0) {
       response += `*Action Items:*\n`;

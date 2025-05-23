@@ -78,14 +78,14 @@ export const registerCommands = (
           replace_original: true
         });
         
-        // Get today's messages from the channel
-        logger.info('Fetching messages from channel', { channelId: targetChannel });
-        const messages = await slackService.getTodayMessages(targetChannel);
+        // Get today's messages from the channel, using the user's timezone
+        logger.info('Fetching messages from channel', { channelId: targetChannel, userId: command.user_id });
+        const messages = await slackService.getTodayMessages(targetChannel, command.user_id);
         
         if (messages.length === 0) {
           logger.info('No messages found in channel', { channelId: targetChannel });
           await respond({
-            text: `No messages found in the channel for today.`,
+            text: `No messages found in the channel for today (based on your timezone).`,
             response_type: 'ephemeral',
             replace_original: true
           });
@@ -107,11 +107,11 @@ export const registerCommands = (
         
         // Generate summary
         logger.info('Generating summary with OpenAI', { messageCount: messageTexts.length });
-        const { summary, actionItems } = await openaiService.generateSummary(messageTexts);
+        const { topic, summary, actionItems } = await openaiService.generateSummary(messageTexts);
         logger.info('Summary generated successfully');
         
         // Format and post the summary
-        const formattedSummary = slackService.formatSummaryResponse(summary, actionItems);
+        const formattedSummary = slackService.formatSummaryResponse(topic, summary, actionItems);
         const summaryHeader = `*Summary of today's messages in #${channelName}*\n\n`;
         
         // Post the summary in the channel
