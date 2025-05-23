@@ -93,3 +93,36 @@ If Slack's URL verification challenge is failing, ensure your function is correc
 - Never hardcode API keys or tokens in your code
 - Always use Firebase environment variables for sensitive credentials
 - Be careful not to commit any files containing secrets to version control 
+
+## Security and Access Control
+
+The bot follows strict security and access control principles:
+
+### Channel Access
+
+- The bot can only access channels (public or private) it has been explicitly invited to
+- The bot cannot read messages in any channel without proper invitation
+- The `conversations.list` API call is restricted to only list public channels
+
+### Error Handling
+
+- Access denied errors (e.g., "not_in_channel") are properly caught and presented to users
+- The bot prompts users to invite it to channels when permission is missing
+- All API calls include proper error handling for permission issues
+
+### Data Protection
+
+- Message data is only temporarily processed and not persistently stored
+- API tokens and secrets are securely managed through Firebase Secret Manager
+- Summarization requests are limited to channels the requesting user already has access to
+- All communication with OpenAI's API uses secure HTTPS connections
+- No conversation history is maintained between summarization requests
+- User information is only used for timezone detection and is never shared with third parties
+
+## Contributing
+
+Contributions to improve security, performance, or add features are welcome. Please ensure any changes maintain the security and privacy principles outlined above.
+
+## License
+
+This project is licensed under the terms specified in the root-level README.

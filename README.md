@@ -205,6 +205,27 @@ Each summary includes:
 
 4. The timezone feature requires the `users.profile:read` scope. If you see timezone-related issues, make sure this permission is granted to the bot.
 
+## Security and Access Control
+
+### Channel Access Restrictions
+
+- **Public Channels**: The bot can only access public channels it has been invited to.
+- **Private Channels**: The bot can only access private channels it has been explicitly invited to.
+- **Permission Enforcement**: Slack's API automatically enforces these restrictions - the bot cannot access channels it hasn't been invited to.
+- **Channel Listing**: The bot only lists public channels in its channel selection interface.
+
+### User Permissions
+
+- Users cannot use the bot to gain access to content in channels they don't have permission to view.
+- The bot respects Slack's workspace permission structure and cannot bypass any access controls.
+- Command access is limited to the channels where both the user and the bot have appropriate permissions.
+
+### Data Privacy
+
+- Messages are only sent to OpenAI for summarization when explicitly requested by a user.
+- Summaries are only posted in the originating channel or thread, maintaining the privacy context of the original conversation.
+- No message data is stored by the bot outside of temporary processing.
+
 ## Troubleshooting
 
 - **Configuration Error**: Make sure all Firebase secrets are properly set
